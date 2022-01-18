@@ -221,10 +221,11 @@ class BaseForm(metaclass=FormMeta):
             await state.update_data(**{field.data_key: message.text})
         else:
             dispatcher = Dispatcher.get_current()
-            await dispatcher.bot.send_message(
-                types.Chat.get_current().id,
-                text=field.validation_error
-            )
+            # await dispatcher.bot.send_message(
+            #     types.Chat.get_current().id,
+            #     text=field.validation_error
+            # )
+            await message.answer(text=field.validation_error)
             return
 
         next_field_index = cls._fields.index(field) + 1
