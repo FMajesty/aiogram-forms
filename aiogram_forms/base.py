@@ -6,6 +6,7 @@ from typing import Tuple, Type, List, Optional, Union, Callable, Awaitable
 
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.types import ReplyKeyboardRemove, ReplyKeyboardMarkup
 
@@ -193,6 +194,7 @@ class BaseForm(metaclass=FormMeta):
     name: str = 'Form'
     _fields: Tuple[BaseField] = tuple()
     _state: Type[StatesGroup]
+    _i18n: Type[BaseMiddleware] = None
 
     _registered: bool = False
     _callback: Callable[[], Awaitable] = None
@@ -206,6 +208,9 @@ class BaseForm(metaclass=FormMeta):
         if not cls._registered:
             dispatcher: Dispatcher = Dispatcher.get_current()
             dispatcher.register_message_handler(cls._handle_input, state=cls.state.states)
+            for middleware in dispatcher.middleware.applications:
+                if "i18n" in str(middleware):
+                    cls._i18n = middleware
             cls._registered = True
 
     @classmethod
@@ -221,11 +226,11 @@ class BaseForm(metaclass=FormMeta):
             await state.update_data(**{field.data_key: message.text})
         else:
             dispatcher = Dispatcher.get_current()
-            # await dispatcher.bot.send_message(
-            #     types.Chat.get_current().id,
-            #     text=field.validation_error
-            # )
-            await message.answer(text=field.validation_error)
+
+            await dispatcher.bot.send_message(
+                types.Chat.get_current().id,
+                text=cls._i18n(field.validation_error) if cls._i18n else field.validation_error
+            )
             return
 
         next_field_index = cls._fields.index(field) + 1
@@ -258,7 +263,7 @@ class BaseForm(metaclass=FormMeta):
         await state.set_state(field.state)
         await dispatcher.bot.send_message(
             types.Chat.get_current().id,
-            text=field.label,
+            text=cls._i18n(field.label) if cls._i18n else field.label,
             reply_markup=field._reply_keyboard  # pylint: disable=protected-access
         )
 
