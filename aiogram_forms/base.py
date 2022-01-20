@@ -199,7 +199,7 @@ class BaseForm(metaclass=FormMeta):
 
     _registered: bool = False
     _callback: Callable[[], Awaitable] = None
-    _callback_args: Any = None
+    _callback_args: List = None
 
     @classmethod
     def _register_handler(cls) -> None:
@@ -291,7 +291,7 @@ class BaseForm(metaclass=FormMeta):
         await state.reset_state(with_data=False)
         if cls._callback:
             if cls._callback_args:
-                await cls._callback(cls._callback_args)
+                await cls._callback(*cls._callback_args)
                 return
             await cls._callback()  # pylint: disable=not-callable
 
